@@ -11,6 +11,7 @@ from difflib import SequenceMatcher
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+import os
 
 def string_similarity(a, b):
     """
@@ -237,47 +238,11 @@ def save_plot_pictures(statistics_to_track):
     
     plot_position_distribution(statistics_to_track, classifications, teams)
     plot_8th_and_24th_position_distribution(statistics_to_track)
-    plot_probability_first_position(statistics_to_track)
-    plot_probability_last_position(statistics_to_track)
+    plot_probability_first_position(statistics_to_track, teams)
+    plot_probability_last_position(statistics_to_track, teams)
     return
 
-
-def plot_8th_and_24th_position_distribution(statistics_to_track):
-    # Create figure and axis
-    plt.figure(figsize=(12, 8))
-    
-    max_points = max([stat['8_position_points'] for stat in statistics_to_track])
-    min_points = min([stat['24_position_points'] for stat in statistics_to_track])
-
-    position_distributions = {"8th position points": [stat['8_position_points'] for stat in statistics_to_track],
-                             "24th position points": [stat['24_position_points'] for stat in statistics_to_track]}
-
-    x = np.arange(min_points, max_points)  # the label locations
-    width = 1/(2 + 1)  # the width of the bars
-    multiplier = 0
-
-    fig, ax = plt.subplots(layout='constrained')
-
-    for attribute, measurement in position_distributions.items():
-        offset = width * multiplier
-        rects = ax.bar(x + offset, measurement, width, label=attribute)
-        #ax.bar_label(rects, labels = ["" for _ in rects.datavalues()], padding=3)
-        multiplier += 1
-
-    # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_ylabel('Probability')
-    ax.set_xlabel('Number of points of team at given position', fontsize=12)
-    ax.set_title('Distribution of number of points of teams at 8th and 24th position over Monte Carlo trials', fontsize=10, y=1.05)
-    ax.set_xticks(x + width, classifications, fontsize=4)
-    ax.legend(loc='upper left')
-    ax.set_ylim(0, 1)
-    
-    # Save the bar plot
-    plt.savefig('8th_and_24th_position_distribution.png', bbox_inches='tight', dpi=900)
-    plt.close()
-    return
-
-def plot_probability_first_position(statistics_to_track):
+def plot_probability_first_position(statistics_to_track, teams):
     # Create figure and axis
     plt.figure(figsize=(12, 8))
     positions = {team: [stat[f'{team}_position'] for stat in statistics_to_track] for team in teams}
@@ -301,7 +266,7 @@ def plot_probability_first_position(statistics_to_track):
     plt.close()
     return
 
-def plot_probability_last_position(statistics_to_track):
+def plot_probability_last_position(statistics_to_track, teams):
     # Create figure and axis
     plt.figure(figsize=(12, 8))
     positions = {team: [stat[f'{team}_position'] for stat in statistics_to_track] for team in teams}
@@ -343,7 +308,7 @@ def plot_position_distribution(statistics_to_track, classifications, all_teams):
     for attribute, measurement in position_distributions.items():
         offset = width * multiplier
         rects = ax.bar(x + offset, measurement, width, label=attribute)
-        #ax.bar_label(rects, labels = ["" for _ in rects.datavalues()], padding=3)
+        #ax.bar_label(rects, padding=3)
         multiplier += 1
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
@@ -363,11 +328,46 @@ def plot_position_distribution(statistics_to_track, classifications, all_teams):
     plt.close()
     return
 
+def plot_8th_and_24th_position_distribution(statistics_to_track):
+    # Create figure and axis
+    plt.figure(figsize=(12, 8))
+    
+    max_points = max([stat['8_position_points'] for stat in statistics_to_track])
+    min_points = min([stat['24_position_points'] for stat in statistics_to_track])
+
+    position_distributions = {"8th position points": [[stat['8_position_points'] for stat in statistics_to_track].count(i)/len(statistics_to_track) for i in range(min_points, max_points + 1)],
+                             "24th position points": [[stat['24_position_points'] for stat in statistics_to_track].count(i)/len(statistics_to_track) for i in range(min_points, max_points + 1)]}
+
+    x = np.arange(min_points, max_points+1)  # the label locations
+    width = 1/(2 + 1)  # the width of the bars
+    multiplier = 0
+
+    fig, ax = plt.subplots(layout='constrained')
+    for attribute, measurement in position_distributions.items():
+        offset = width * multiplier
+        rects = ax.bar([a + offset for a in x], measurement, width, label=attribute)
+        #ax.bar_label(rects, padding=3)
+        multiplier += 1
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_ylabel('Probability')
+    ax.set_xlabel('Number of points of team at given position', fontsize=12)
+    ax.set_title('Distribution of number of points of teams at 8th and 24th position over Monte Carlo trials', fontsize=10, y=1.05)
+    ax.set_xticks(x + width, x, fontsize=10)
+    ax.legend(loc='upper left')
+    ax.set_ylim(0, 1)
+    
+    # Save the bar plot
+    plt.savefig('8th_and_24th_position_distribution.png', bbox_inches='tight', dpi=900)
+    plt.close()
+    return
+
 if __name__ == "__main__":
     begin_time = time.time()
     generateNewMatches = False
-    if generateNewMatches:
+    if generateNewMatches or not os.path.isfile("wiki_matches.csv"):
         fetch_champions_league_matches()
+    if generateNewMatches or not os.path.isfile("predicd_odds.csv"):
         fetch_predicd_win_probabilities()
     matches_list, matches_to_generate_predicd = create_matches_list()
     
